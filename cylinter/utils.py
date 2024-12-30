@@ -52,13 +52,32 @@ def log_banner(log_function, msg):
     log_function(msg)
     log_function("-" * len(msg))
 
-
 def log_multiline(log_function, msg):
     """Call log_function once for each line of msg."""
     
     for line in msg.split("\n"):
         log_function(line)
 
+def check_tif_consistency(folder_path):
+    """
+    Checks if all files in the folder have the extension .tif or .ome.tif.
+    Returns a set of base file names (without extensions) if consistent.
+    Logs an error and exits if extensions are inconsistent.
+    """
+    file_paths = glob.glob(os.path.join(folder_path, '*.tif'))
+    file_names = set([os.path.basename(path) for path in file_paths])
+
+    # Check for consistent extensions
+    if all('ome.tif' in name for name in file_names):
+        return set([os.path.basename(path).rsplit('.ome.tif', 1)[0] for path in file_paths])
+    elif all('.tif' in name for name in file_names):
+        return set([os.path.basename(path).rsplit('.tif', 1)[0] for path in file_paths])
+    else:
+        logger.error(
+            f'Aborting; file names in "{folder_path}" folder have different extensions. '
+            'Ensure consistent use of file extensions (".tif" or ".ome.tif").'
+        )
+        sys.exit()
 
 def input_check(self):
 
@@ -219,66 +238,16 @@ def input_check(self):
         [os.path.basename(path).rsplit('.', 1)[0] for path
          in glob.glob(os.path.join(self.inDir, 'csv', '*.csv'))]
     )
+    print(csv_names)
+    
+    ## check .tif (mask, tif, seg) consistency
+    tif_folder = os.path.join(self.inDir, 'tif')
+    seg_folder = os.path.join(self.inDir, 'seg')
+    mask_folder = os.path.join(self.inDir, 'mask')
 
-    tif_names = set(
-        [os.path.basename(path) for path in glob.glob(os.path.join(self.inDir, 'tif', '*.tif'))]
-    )
-    if all('ome.tif' in s for s in tif_names):
-        tif_names = set(
-            [os.path.basename(path).rsplit('.ome.tif', 1)[0] for path
-             in glob.glob(os.path.join(self.inDir, 'tif', '*.tif'))]
-        )
-    elif all('.tif' in s for s in tif_names):
-        tif_names = set(
-            [os.path.basename(path).rsplit('.tif', 1)[0] for path
-             in glob.glob(os.path.join(self.inDir, 'tif', '*.tif'))]
-        )
-    else:
-        logger.info(
-            'Aborting; file names in "tif" folder have different extensions. '
-            'Ensure consistent use of file extensions (".tif" or ".ome.tif")'
-        )
-        sys.exit()
-
-    seg_names = set(
-        [os.path.basename(path) for path in glob.glob(os.path.join(self.inDir, 'seg', '*.tif'))]
-    )
-    if all('ome.tif' in s for s in seg_names):
-        seg_names = set(
-            [os.path.basename(path).rsplit('.ome.tif', 1)[0] for path
-             in glob.glob(os.path.join(self.inDir, 'seg', '*.tif'))]
-        )
-    elif all('.tif' in s for s in seg_names):
-        seg_names = set(
-            [os.path.basename(path).rsplit('.tif', 1)[0] for path
-             in glob.glob(os.path.join(self.inDir, 'seg', '*.tif'))]
-        )
-    else:
-        logger.info(
-            'Aborting; file names in "seg" folder have different extensions. '
-            'Ensure consistent use of file extensions (".tif" or ".ome.tif")'
-        )
-        sys.exit()
-
-    mask_names = set(
-        [os.path.basename(path) for path in glob.glob(os.path.join(self.inDir, 'mask', '*.tif'))]
-    )
-    if all('ome.tif' in s for s in mask_names):
-        mask_names = set(
-            [os.path.basename(path).rsplit('.ome.tif', 1)[0] for path
-             in glob.glob(os.path.join(self.inDir, 'mask', '*.tif'))]
-        )
-    elif all('.tif' in s for s in mask_names):
-        mask_names = set(
-            [os.path.basename(path).rsplit('.tif', 1)[0] for path
-             in glob.glob(os.path.join(self.inDir, 'mask', '*.tif'))]
-        )
-    else:
-        logger.info(
-            'Aborting; file names in "mask" folder have different extensions. '
-            'Ensure consistent use of file extensions (".tif" or ".ome.tif")'
-        )
-        sys.exit()
+    tif_names = check_tif_consistency(tif_folder)
+    seg_names = check_tif_consistency(seg_folder)
+    mask_names = check_tif_consistency(mask_folder)
 
     if not all(s == csv_names for s in [csv_names, tif_names, seg_names, mask_names]):
         logger.info(
@@ -376,8 +345,24 @@ def napari_notification(msg):
 
 def read_markers(markers_filepath, counterstain_channel, markers_to_exclude, data):
 
-    markers = pd.read_csv(markers_filepath, dtype={0: 'int16', 1: 'int16', 2: 'str'}, comment='#')
+    ### read the markers data
+    if not os.path.exists(markers_filepath):
+        logger.info(
+            'Aborting; markers.csv file not found. Include markers.csv '
+            'or ensure input file path ("inDir") is correct in cylinter_config.yml'
+        )
+        sys.exit(1)  # Exit the program with an error code
 
+    try:
+        # Attempt to read the CSV file
+        markers = pd.read_csv(markers_filepath, dtype={0: 'int16', 1: 'int16', 2: 'str'}, comment='#')
+    except Exception as e:
+        logger.info(
+            'Aborting; markers.csv file could not be read. Make sure markers.csv is readable'
+        )
+        sys.exit(1)  # Exit the program with an error code
+
+    ## include and exclude markers
     if data is None:
         markers_to_include = [i for i in markers['marker_name'] if i not in markers_to_exclude]
     else:
