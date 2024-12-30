@@ -32,12 +32,12 @@ def aggregateData(data, self, args):
     channel_setlist = []
     sample_keys = [i for i in self.sampleNames.keys()]
     for key in sample_keys:
-        
+
         if check == 'standard':
             sample = key
         else:
             sample = key.split('--')[0]
-        
+
         if sample not in self.samplesToExclude:
 
             logger.info(f'IMPORTING sample {key}')
@@ -58,57 +58,6 @@ def aggregateData(data, self, args):
                               'Orientation'] if i in csv.columns]]
             )
 
-            # (for BAF project)
-            # cols = (
-            #     ['CellID', 'Area', 'Solidity', 'X_centroid', 'Y_centroid',
-            #      'CytArea', 'CoreCoord', 'AreaSubstruct',
-            #      'MeanInsideSubstruct', 'CoreFlag', 'Corenum'] +
-            #     [i for i in markers['marker_name'] if i in csv.columns]
-            #      )
-
-            # (for SARDANA)
-            # select boilerplate columns and use specific
-            # mask quantifications for different antibodies
-            # mask_dict = {
-            #     'Hoechst0': 'nucleiRingMask',
-            #     'Hoechst1': 'nucleiRingMask',
-            #     'Hoechst2': 'nucleiRingMask',
-            #     'anti_CD3': 'cytoRingMask',
-            #     'anti_CD45RO': 'cytoRingMask',
-            #     'Hoechst3': 'nucleiRingMask',
-            #     'Keratin_570': 'cellRingMask',
-            #     'aSMA_660': 'cellRingMask',
-            #     'Hoechst4': 'nucleiRingMask',
-            #     'CD4_488': 'cytoRingMask',
-            #     'CD45_PE': 'cytoRingMask',
-            #     'PD1_647': 'cytoRingMask',
-            #     'Hoechst5': 'nucleiRingMask',
-            #     'CD20_488': 'cytoRingMask',
-            #     'CD68_555': 'cellRingMask',
-            #     'CD8a_660': 'cytoRingMask',
-            #     'Hoechst6': 'nucleiRingMask',
-            #     'CD163_488': 'cellRingMask',
-            #     'FOXP3_570': 'nucleiRingMask',
-            #     'PDL1_647': 'cytoRingMask',
-            #     'Hoechst7': 'nucleiRingMask',
-            #     'Ecad_488': 'cellRingMask',
-            #     'Vimentin_555': 'cellRingMask',
-            #     'CDX2_647': 'cellRingMask',
-            #     'Hoechst8': 'nucleiRingMask',
-            #     'LaminABC_488': 'nucleiRingMask',
-            #     'Desmin_555': 'cellRingMask',
-            #     'CD31_647': 'nucleiRingMask',
-            #     'Hoechst9': 'nucleiRingMask',
-            #     'PCNA_488': 'nucleiRingMask',
-            #     'CollagenIV_647': 'cellRingMask'}
-            # cols = (
-            #     ['CellID', 'X_centroid', 'Y_centroid', 'Area',
-            #      'MajorAxisLength', 'MinorAxisLength',
-            #      'Eccentricity', 'Solidity', 'Extent',
-            #      'Orientation'] +
-            #     [f'{i}_{mask_dict[i]}' for i
-            #      in markers['marker_name']])
-            
             try:
                 csv = csv[cols]
             except KeyError as e:

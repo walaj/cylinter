@@ -58,26 +58,51 @@ def log_multiline(log_function, msg):
     for line in msg.split("\n"):
         log_function(line)
 
-def check_tif_consistency(folder_path):
+
+def check_ext_consistency(folder_path, sample_names, allowed_extensions):
     """
-    Checks if all files in the folder have the extension .tif or .ome.tif.
+    Checks if all files in the folder with basenames in sample_names have the extension .tif or .ome.tif.
     Returns a set of base file names (without extensions) if consistent.
     Logs an error and exits if extensions are inconsistent.
     """
-    file_paths = glob.glob(os.path.join(folder_path, '*.tif'))
+
+    # Check if the folder exists and is readable
+    if not os.path.isdir(folder_path):
+        logger.error(f'Folder "{folder_path}" does not exist or is not a directory.')
+        sys.exit()
+    if not os.access(folder_path, os.R_OK):
+        logger.error(f'Folder "{folder_path}" is not readable.')
+        sys.exit()
+
+    # Get all file paths in the folder
+    file_paths = glob.glob(os.path.join(folder_path, '*'))
+
+    # Extract base file names
     file_names = set([os.path.basename(path) for path in file_paths])
 
-    # Check for consistent extensions
-    if all('ome.tif' in name for name in file_names):
-        return set([os.path.basename(path).rsplit('.ome.tif', 1)[0] for path in file_paths])
-    elif all('.tif' in name for name in file_names):
-        return set([os.path.basename(path).rsplit('.tif', 1)[0] for path in file_paths])
-    else:
+    # Filter file_names to only include those that match the sample names (base names)
+    file_names_to_check = [name.split('.')[0] for name in file_names if name.split('.')[0] in sample_names]
+
+    # Check for missing files first
+    missing_files = {basename for basename in sample_names if basename not in file_names_to_check}
+    if missing_files:
+        for missing_file in missing_files:
+            logger.error(
+                f'Missing expected file for sample: {missing_file}. Expected one of "{missing_file}" with allowed extensions: {allowed_extensions}.')
+
+    # Now, check for consistent extensions among the selected files
+    extensions_found = set(
+        os.path.splitext(name)[1] for name in file_names if name.split('.')[0] in file_names_to_check)
+
+    # Check if extensions are consistent with allowed extensions
+    if not extensions_found.issubset(set(allowed_extensions)):
         logger.error(
-            f'Aborting; file names in "{folder_path}" folder have different extensions. '
-            'Ensure consistent use of file extensions (".tif" or ".ome.tif").'
-        )
+            f'Aborting; files in folder "{folder_path}" have inconsistent extensions. Expected one of {allowed_extensions}.')
         sys.exit()
+
+    # If extensions are consistent, return the file_names_to_check
+    return sorted(file_names_to_check)
+
 
 def input_check(self):
 
@@ -89,7 +114,7 @@ def input_check(self):
     contents = os.listdir(self.inDir)
 
     # check whether input directory contains expected files and folders:
-    if any(element not in contents for element in
+    if False or any(element not in contents for element in
            ['cylinter_config.yml', 'markers.csv', 'csv', 'tif', 'seg', 'mask']):
 
         ##########################################################################################
@@ -234,20 +259,15 @@ def input_check(self):
         ##########################################################################################
 
     # next, check that csv, tif, seg, and mask subdirectories each contain files for all samples
-    csv_names = set(
-        [os.path.basename(path).rsplit('.', 1)[0] for path
-         in glob.glob(os.path.join(self.inDir, 'csv', '*.csv'))]
-    )
-    print(csv_names)
-    
-    ## check .tif (mask, tif, seg) consistency
+    csv_folder = os.path.join(self.inDir, 'csv')
     tif_folder = os.path.join(self.inDir, 'tif')
     seg_folder = os.path.join(self.inDir, 'seg')
     mask_folder = os.path.join(self.inDir, 'mask')
 
-    tif_names = check_tif_consistency(tif_folder)
-    seg_names = check_tif_consistency(seg_folder)
-    mask_names = check_tif_consistency(mask_folder)
+    csv_names = check_ext_consistency(csv_folder, self.sampleNames.keys(), ['.csv'])
+    tif_names = check_ext_consistency(tif_folder, self.sampleNames.keys(), ['.tif','.ome.tif'])
+    seg_names = check_ext_consistency(seg_folder, self.sampleNames.keys(), ['.tif','.ome.tif'])
+    mask_names = check_ext_consistency(mask_folder, self.sampleNames.keys(), ['.tif','.ome.tif'])
 
     if not all(s == csv_names for s in [csv_names, tif_names, seg_names, mask_names]):
         logger.info(
