@@ -477,11 +477,14 @@ def callback(self, viewer, channel, dfTrim, data, initial_callback, percentiles_
 
             # read segmentation outlines
             file_path = get_filepath(self, check, sample, 'SEG')
-            seg, min, max = single_channel_pyramid(file_path, channel=0)
-            viewer.add_image(
-                seg, rgb=False, blending='additive', opacity=1.0, colormap='gray',
-                visible=False, name='segmentation', contrast_limits=(min, max)
-            )
+            if not file_path:
+                logger.error(f'Warning: Segmentation path for {sample} is None or empty.')
+            else:
+                seg, min, max = single_channel_pyramid(file_path, channel=0)
+                viewer.add_image(
+                    seg, rgb=False, blending='additive', opacity=1.0, colormap='gray',
+                    visible=False, name='segmentation', contrast_limits=(min, max)
+                )
 
             # grab centroids of low signal intensity outliers
             low_centroids = dfTrim[
@@ -718,7 +721,7 @@ def pruneOutliers(data, self, args):
         sys.exit()
     
     # initialize Napari viewer
-    viewer = napari.Viewer(title='CyLinter')
+    viewer = napari.Viewer(title='CyLinter (Prune Outliers)')
 
     # generate Qt widget for specifying percentile cutoffs
     percentiles_widget = QtWidgets.QWidget()

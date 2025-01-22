@@ -13,21 +13,24 @@ logger = logging.getLogger(__name__)
 def aggregateData(data, self, args):
 
     print()
-    
-    check, markers_filepath = input_check(self)
 
+    print("1")
+    check, markers_filepath = input_check(self)
+    print("A")
     markers, abx_channels = read_markers( 
         markers_filepath=markers_filepath,
         counterstain_channel=self.counterstainChannel,
         markers_to_exclude=self.markersToExclude, data=None
     )
 
+    print("2")
     # initialize CyLinter QC report if it hasn't been already
     report_path = os.path.join(self.outDir, 'cylinter_report.yml')
     if not os.path.exists(report_path):
         f = open(report_path, 'w')
         yaml.dump({}, f)
-    
+
+    print("3")        
     df_list = []
     channel_setlist = []
     sample_keys = [i for i in self.sampleNames.keys()]
@@ -41,7 +44,9 @@ def aggregateData(data, self, args):
         if sample not in self.samplesToExclude:
 
             logger.info(f'IMPORTING sample {key}')
-            
+
+            print(check)
+            print(sample)
             file_path = get_filepath(self, check, sample, 'CSV')
             csv = pd.read_csv(file_path)
 
@@ -62,8 +67,7 @@ def aggregateData(data, self, args):
                 csv = csv[cols]
             except KeyError as e:
                 logger.info(
-                    'Aborting; some (or all) marker names in markers.csv do not appear '
-                    'as columns in the single-cell data table. Check for spelling and case.'
+                    f'Aborting; some (or all) marker names in markers.csv for sample {sample} do not appear as columns in the single-cell data table. Check for spelling and case.'
                 )
                 print(e)
                 sys.exit()
@@ -103,6 +107,7 @@ def aggregateData(data, self, args):
     # only select channels shared among all samples
     channels_set = list(set.intersection(*channel_setlist))
 
+    print("4")
     logger.info(f'{len(data.columns)} total columns')
     logger.info(f'{len(channels_set)} columns in common between all samples')
 

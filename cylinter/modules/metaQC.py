@@ -1054,12 +1054,15 @@ def metaQC(data, self, args):
 
                                     # read segmentation outlines, add to Napari
                                     file_path = get_filepath(self, check, value, 'SEG')
-                                    seg, min, max = single_channel_pyramid(file_path, channel=0)
-                                    viewer.add_image(
-                                        seg, rgb=False, blending='additive', colormap='gray',
-                                        visible=False, name='segmentation', 
-                                        contrast_limits=(min, max)
-                                    )
+                                    if not file_path:
+                                        logger.error(f'Warning: Segmentation path for {sample} is None or empty.')
+                                    else:
+                                        seg, min, max = single_channel_pyramid(file_path, channel=0)
+                                        viewer.add_image(
+                                            seg, rgb=False, blending='additive', colormap='gray',
+                                            visible=False, name='segmentation',
+                                            contrast_limits=(min, max)
+                                        )
                                     
                                     # get ordered list of DNA cycles
                                     dna_moniker = (

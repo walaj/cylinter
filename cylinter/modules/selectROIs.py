@@ -96,14 +96,14 @@ def selectROIs(data, self, args):
             'from aggregateData module to initialize QC report.'
         )
         sys.exit()
-    
-    if self.samplesForROISelection:
 
-        # check that all samples in samplesForROISelection are in dataframe
-        if not (set(self.samplesForROISelection).issubset(data['Sample'].unique())):
-            logger.info(
-                'Aborting; one or more samples in "samplesForROISelection" configuration '
-                'parameter are not in the dataframe.'
+    if self.samplesForROISelection:
+        # Check that all samples in samplesForROISelection are in the dataframe
+        missing_samples = set(self.samplesForROISelection) - set(data['Sample'].unique())
+        if missing_samples:
+            logger.error(
+                'Aborting; the following samples in "samplesForROISelection" configuration parameter '
+                'are not in the dataframe: {}'.format(", ".join(missing_samples))
             )
             sys.exit()
 
@@ -120,7 +120,7 @@ def selectROIs(data, self, args):
         samples = iter(self.samplesForROISelection)
         sample = next(samples)
 
-        viewer = napari.Viewer(title='CyLinter')
+        viewer = napari.Viewer(title='CyLinter (ROI)')
         viewer.scale_bar.visible = True
         viewer.scale_bar.unit = 'um'
 
@@ -230,15 +230,20 @@ def selectROIs(data, self, args):
 
             # cell segmentation outlines channel
             file_path = get_filepath(self, check, sample, 'SEG')
-            seg, min, max = single_channel_pyramid(file_path, channel=0)
-            viewer.add_image(
-                seg, rgb=False, blending='additive', opacity=1.0,
-                colormap='gray', visible=False, name='segmentation',
-                contrast_limits=(min, max)
-            )
+
+            if not file_path:
+                logger.error(f'Warning: Segmentation path for {sample} is None or empty.')
+            else:
+                seg, min, max = single_channel_pyramid(file_path, channel=0)
+                viewer.add_image(
+                    seg, rgb=False, blending='additive', opacity=1.0,
+                    colormap='gray', visible=False, name='segmentation',
+                    contrast_limits=(min, max)
+                )
 
             # DNA1 channel
             file_path = get_filepath(self, check, sample, 'TIF')
+
             channel_number = marker_channel_number(self, markers, self.counterstainChannel)
             dna, min, max = single_channel_pyramid(file_path, channel=channel_number)
             viewer.add_image(

@@ -66,12 +66,15 @@ def callback(self, viewer, sample, samples_to_run, data, ratios_melt, initial_ca
 
         # add cell segmentation outlines to Napari viewer
         file_path = get_filepath(self, check, sample, 'SEG')
-        seg, min, max = single_channel_pyramid(file_path, channel=0)
-        viewer.add_image(
-            seg, rgb=False, blending='additive',
-            opacity=0.5, colormap='gray', visible=False,
-            name='segmentation', contrast_limits=(min, max)
-        )
+        if not file_path:
+            logger.error(f'Warning: Segmentation path for {sample} is None or empty.')
+        else:
+            seg, min, max = single_channel_pyramid(file_path, channel=0)
+            viewer.add_image(
+                seg, rgb=False, blending='additive',
+                opacity=0.5, colormap='gray', visible=False,
+                name='segmentation', contrast_limits=(min, max)
+            )
  
         # add last DNA image to Napari viewer
         file_path = get_filepath(self, check, sample, 'TIF')
@@ -459,7 +462,7 @@ def cycleCorrelation(data, self, args):
     ##########################################################
     
     # initialize Napari viewer
-    viewer = napari.Viewer(title='CyLinter')
+    viewer = napari.Viewer(title='CyLinter (Cycle Correlation)')
 
     # generate arbitrary sample selection Qt widget
     selection_widget = QtWidgets.QWidget()

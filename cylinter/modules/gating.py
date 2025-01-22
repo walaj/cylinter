@@ -209,11 +209,14 @@ def callback(self, viewer, data, hist_widget, hist_layout, selection_widget, sel
             
         # read segmentation outlines
         file_path = get_filepath(self, check, sample, 'SEG')
-        seg, min, max = single_channel_pyramid(file_path, channel=0)
-        viewer.add_image(
-            seg, rgb=False, blending='additive', opacity=1.0, colormap='gray',
-            visible=False, name='segmentation', contrast_limits=(min, max)
-        )
+        if not file_path:
+            logger.error(f'Warning: Segmentation path for {sample} is None or empty.')
+        else:
+            seg, min, max = single_channel_pyramid(file_path, channel=0)
+            viewer.add_image(
+                seg, rgb=False, blending='additive', opacity=1.0, colormap='gray',
+                visible=False, name='segmentation', contrast_limits=(min, max)
+            )
 
         # read marker channel
         reversed_abx_channels = abx_channels.copy()

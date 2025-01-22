@@ -54,11 +54,14 @@ def callback(self, viewer, sample, samples_to_run, data, initial_callback, selec
         
         # read segmentation outlines and add to Napari viewer
         file_path = get_filepath(self, check, sample, 'SEG')
-        seg, min, max = single_channel_pyramid(file_path, channel=0)
-        viewer.add_image(
-            seg, rgb=False, visible=False, colormap='gray', opacity=0.5,
-            name='segmentation', contrast_limits=(min, max)
-        )
+        if not file_path:
+            logger.error(f'Warning: Segmentation path for {sample} is None or empty.')
+        else:
+            seg, min, max = single_channel_pyramid(file_path, channel=0)
+            viewer.add_image(
+                seg, rgb=False, visible=False, colormap='gray', opacity=0.5,
+                name='segmentation', contrast_limits=(min, max)
+            )
 
         # read DNA1 and add to Napari viewer
         file_path = get_filepath(self, check, sample, 'TIF')
@@ -390,7 +393,7 @@ def intensityFilter(data, self, args):
         sys.exit()
 
     # initialize Napari viewer
-    viewer = napari.Viewer(title='CyLinter')
+    viewer = napari.Viewer(title='CyLinter (Intensity Filter)')
 
     # generate arbitrary sample selection Qt widget
     selection_widget = QtWidgets.QWidget()

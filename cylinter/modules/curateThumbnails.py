@@ -211,17 +211,24 @@ def curateThumbnails(data, self, args):
                     # run cellcutter on sample image
                     tif_file_path = get_filepath(self, check, sample, 'TIF')
                     mask_file_path = get_filepath(self, check, sample, 'MASK')
-                    run(
-                        ["cut_cells", "--force", "--window-size",
-                         f"{self.windowSize}", "--cells-per-chunk",
-                         "200", "--cache-size", "57711",
-                         f"{tif_file_path}",
-                         f"{mask_file_path}",
-                         f"{thumbnails_dir}/csv_data.csv",
-                         f"{zarr_dir}/{type}_{pop}_sample_{sample}"
-                         f"_win{self.windowSize}.zarr",
-                         "--channels"] + channel_nums
-                    )
+
+                    # Check if mask_file_path is empty
+                    if not mask_file_path:
+                        logger.warning(f"Mask file not found for sample {sample}. Skipping cell cutting.")
+
+                    # Only run the 'cut_cells' command if both file paths are non-empty
+                    if mask_file_path:
+                        run(
+                            ["cut_cells", "--force", "--window-size",
+                            f"{self.windowSize}", "--cells-per-chunk",
+                            "200", "--cache-size", "57711",
+                            f"{tif_file_path}",
+                            f"{mask_file_path}",
+                            f"{thumbnails_dir}/csv_data.csv",
+                            f"{zarr_dir}/{type}_{pop}_sample_{sample}"
+                            f"_win{self.windowSize}.zarr",
+                            "--channels"] + channel_nums
+                        )
 
                     # read multi-channel zarr file created by cellcutter
                     z_path_img = os.path.join(
@@ -265,18 +272,28 @@ def curateThumbnails(data, self, args):
                         # run cellcutter on segmentation outlines image
                         seg_file_path = get_filepath(self, check, sample, 'SEG')
                         mask_file_path = get_filepath(self, check, sample, 'MASK')
-                        run(
-                            ["cut_cells", "--force", "--window-size",
-                             f"{self.windowSize}",
-                             "--cells-per-chunk", "200",
-                             "--cache-size", "57711",
-                             f"{seg_file_path}",
-                             f"{mask_file_path}",
-                             f"{thumbnails_dir}/csv_data.csv",
-                             f"{zarr_dir}/{type}_{pop}_sample_{sample}"
-                             f"_win{self.windowSize}_seg.zarr",
-                             "--channels", "1"]
-                        )
+
+                        # Check if either seg_file_path or mask_file_path is empty
+                        if not seg_file_path:
+                            logger.warning(f"Segmentation file not found for sample {sample}. Skipping cell cutting.")
+
+                        if not mask_file_path:
+                            logger.warning(f"Mask file not found for sample {sample}. Skipping cell cutting.")
+
+                        # Only run the 'cut_cells' command if both file paths are non-empty
+                        if seg_file_path and mask_file_path:
+                            run(
+                                ["cut_cells", "--force", "--window-size",
+                                f"{self.windowSize}",
+                                "--cells-per-chunk", "200",
+                                "--cache-size", "57711",
+                                f"{seg_file_path}",
+                                f"{mask_file_path}",
+                                f"{thumbnails_dir}/csv_data.csv",
+                                f"{zarr_dir}/{type}_{pop}_sample_{sample}"
+                                f"_win{self.windowSize}_seg.zarr",
+                                "--channels", "1"]
+                            )
 
                         # read segmentation outlines zarr file
                         # created by cellcutter
